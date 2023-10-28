@@ -157,9 +157,12 @@ void serialEvent()//code pour commandes
       //byte
       for(int i = 0 ; i <=5;i++)
       {
-        if (readString.equals(GetName(NameF[i])))
+        if (readString.equals(GetName(Name[i])))
         {
           byte var = value;
+          Serial.println(var);
+          Serial.println(tmp[i]);
+
           EEPROM.put(tmp[i],var);
           break;
           
@@ -172,7 +175,7 @@ void serialEvent()//code pour commandes
       
         for(int i = 6 ; i <=9;i++)
         {
-          if (readString.equals(GetName(NameF[i])))
+          if (readString.equals(GetName(Name[i])))
           {
             signed char var = value;
             EEPROM.put(tmp[i],var);
@@ -187,7 +190,7 @@ void serialEvent()//code pour commandes
         
         for(int i = 10 ; i <=13;i++)
         {
-          if (readString.equals(GetName(NameF[i])))
+          if (readString.equals(GetName(Name[i])))
           {
             word var = value;
             EEPROM.put(tmp[i],var);
@@ -195,7 +198,7 @@ void serialEvent()//code pour commandes
           }
         }     
       }
-      if (readString.equals(GetName(NameF[14])))
+      if (readString.equals(GetName(Name[14])))
       {
         unsigned int var = value;
         EEPROM.put(tmp[14],var);
