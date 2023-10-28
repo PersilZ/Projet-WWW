@@ -331,6 +331,27 @@ void GetHelp()// obtenir les different paramètre et fonction disponibles
 
 void GetRTC()//obtenir date et heure
 {
+  if(!rtc.begin())
+  {
+    unsigned long Start = millis();
+    while (!rtc.begin()) 
+    {
+      
+
+      if(millis()-Start >=EEPROM.read(2)*1000)
+      {
+        ErrorCode = 1;
+        break;
+      }
+      
+
+    }
+
+  }else
+  if (ErrorCode == 1)
+  {
+    ErrorCode = 0;
+  }
 
   DateTime now = rtc.now();
   Lecture.Date.Year = now.year();
@@ -427,7 +448,7 @@ void GetHum() // obtenir humidité, température, pression
 void GetData()// récuperer les donnée précedentes
 {
   
-  if(mode != 1 && millis()-DataClock>=EEPROM.read(1)*ECOMUL*150)
+  if(mode != 1 && millis()-DataClock>=EEPROM.read(1)*ECOMUL*60000)
   {
     Erreur();
     if(mode != 3 || GPSFlag)
@@ -585,28 +606,7 @@ void Erreur()//gestion des erreurs
 {
 
   //Erreur RTC
-  if(!rtc.begin())
-  {
-    unsigned long Start = millis();
-    while (!rtc.begin()) 
-    {
-      Serial.println(!rtc.begin());
-      Serial.println(millis()-Start);
-
-      if(millis()-Start <=EEPROM.read(2)*1000)
-      {
-        ErrorCode = 1;
-        break;
-      }
-      
-
-    }
-
-  }else
-  if (ErrorCode == 1)
-  {
-    ErrorCode = 0;
-  }
+  
   
 
 
@@ -646,104 +646,113 @@ void Erreur()//gestion des erreurs
 void ChageLeds() // changer les led
 {
   LedTickCounter++;
-  delay(16);
-  
   switch(ErrorCode)
   {
     
     case 0:
+      LedTickCounter=0;
       ModeLed();
       break;
 
     case 1:
-      if(LedTickCounter<64)
+      if(LedTickCounter==1)
       {
         Led.setColorRGB(0,255,0,0);
       }else 
-      if(LedTickCounter<128)
+      if(LedTickCounter==2)
       {
         Led.setColorRGB(0,0,0,255);
       }
       else
       {
         ModeLed();
+        LedTickCounter=0;
       }
       break;
 
     case 2:
 
-      if(LedTickCounter<64)
+      if(LedTickCounter==1)
       {
         Led.setColorRGB(0,255,0,0);
       }else 
-      if(LedTickCounter<128)
+      if(LedTickCounter==2)
       {
         Led.setColorRGB(0,255,255,0);
       }
       else
       {
         ModeLed();
+        LedTickCounter=0;
       }
       break;
 
     case 3:
 
-      if(LedTickCounter<64)
+      if(LedTickCounter==1)
       {
         Led.setColorRGB(0,255,0,0);
       }else 
-      if(LedTickCounter<128)
+      if(LedTickCounter==2)
       {
         Led.setColorRGB(0,0,255,0);
       }
       else
       {
         ModeLed();
+        LedTickCounter=0;
       }
       break;
 
     case 4:
-      if(LedTickCounter<64)
+      if(LedTickCounter==1)
       {
         Led.setColorRGB(0,255,0,0);
+        
+  
       }else 
-      if(LedTickCounter<192)
+      if(LedTickCounter==2||LedTickCounter==3)
       {
         Led.setColorRGB(0,0,255,0);
+        
       }
       else
       {
         ModeLed();
+        LedTickCounter=0;
+        
       }
       break;
 
     case 5:
-      if(LedTickCounter<64)
+      if(LedTickCounter==1)
       {
         Led.setColorRGB(0,255,0,0);
       }else 
-      if(LedTickCounter<128)
+      if(LedTickCounter==2)
       {
         Led.setColorRGB(0,255,255,255);
       }
       else
       {
+        LedTickCounter=0;
         ModeLed();
       }
       
       break;
 
     case 6:
-      if(LedTickCounter<64)
+      if(LedTickCounter==1)
       {
         Led.setColorRGB(0,255,0,0);
       }else 
-      if(LedTickCounter<192)
+      if(LedTickCounter==2||LedTickCounter==3)
       {
         Led.setColorRGB(0,255,255,255);
       }
       else
       {
+        LedTickCounter=0;
         ModeLed();
       }
       break;
@@ -791,8 +800,10 @@ void SaveData() // enregistrer les données
   {
     unsigned int var;
     EEPROM.get(19,var);
+    Serial.println(myFile.fileSize());
     if(myFile.fileSize()>=var)
     {
+      
       Revision++;
     }
 
@@ -838,6 +849,30 @@ void PrintData() //renvoie donnée
   Serial.println(Lecture.LightI);
 }
 
+void setupTimer1() {
+  noInterrupts();
+  // Clear registers
+  TCCR1A = 0;
+  TCCR1B = 0;
+  TCNT1 = 0;
+
+  // 1 Hz (16000000/((15624+1)*1024))
+  OCR1A = 15624;
+  // CTC
+  TCCR1B |= (1 << WGM12);
+  // Prescaler 1024
+  TCCR1B |= (1 << CS12) | (1 << CS10);
+  // Output Compare Match A Interrupt Enable
+  TIMSK1 |= (1 << OCIE1A);
+  interrupts();
+}
+
+ISR(TIMER1_COMPA_vect) 
+{
+  ChageLeds();
+  
+
+}
 
 void setup()
 {
@@ -848,7 +883,7 @@ void setup()
   }
   Serial.begin(9600);
 
- 
+  setupTimer1();
   
   SetupButtons();
   Led.init();
@@ -856,7 +891,7 @@ void setup()
   pinMode(A0,INPUT);
 
   Led.setColorRGB(0,255,255,255);
-  delay(1000);
+  
 
   
 }
@@ -865,5 +900,5 @@ void loop()
 {
   
   GetData();
-  ChageLeds();
+
 }
